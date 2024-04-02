@@ -1,3 +1,12 @@
+import requests
+import time
+import numpy as np
+import io
+import cv2
+
+
+
+
 def highlight_text(image_url):
     try:
         # Récupérer l'image en ligne
@@ -34,6 +43,10 @@ def highlight_text(image_url):
     except Exception as e:
         print(f"Une erreur s'est produite : {e}")
 
+
+
+        
+"""
 # URL de l'image en ligne
 image_url = f"https://invoiceocrp3.azurewebsites.net/invoices/{dataset[4]['no']}"
 
@@ -66,4 +79,4 @@ for result in read_result.analyze_result.read_results:
                'bbox': line.bounding_box,
            }
         
-print()
+print()"""

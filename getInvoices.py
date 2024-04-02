@@ -27,7 +27,7 @@ def get_all_invoices():
                 else:
                     data.extend(adddata)
                     lastDate = data[-1]['dt']
-                    print(lastDate,data[-1])
+                    #print(lastDate,data[-1])
         else :
             print(f"Erreur: {response.status_code} - {response.reason}") 
             flag = True
