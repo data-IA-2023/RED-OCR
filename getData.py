@@ -1,5 +1,7 @@
 
 import regex as re
+from  extractData import *
+from unidecode import unidecode
 
 class Product:
     def __init__(self, name_product, quantity, price):
@@ -14,7 +16,7 @@ class Invoice:
         self.total_products = total_products
 
 class Client:
-    def __init__(self,client_id,client_cat,client_address,client_name):
+    def __init__(self,client_name,client_address,client_id,client_cat):
         self.client_id      = client_id
         self.client_address = client_address
         self.client_name    = client_name
@@ -61,44 +63,84 @@ def get_invoices_basic_data(brut_format):
 
 
 
-def get_invoices_client_data(qr_data,brut_format):
+def get_invoices_client_data(qr_data, brut_format):
+    regex_address = r"address\s.*\n.*"
+    regex_name    = r"bill\sto\s(.*?)\s(.*?ing)"
+    
+    match_address = re.search(regex_address, brut_format.lower())
+    match_name    = re.search(regex_name, brut_format.lower())
 
-
-    regex_address     = r"address\s.*\n.*"
-    regex_name        = r"bill\sto\s(.*?)\s(.*?ing)"
-    match_address     = re.search(regex_address, brut_format.lower())
-    match_name        = re.search(regex_name, brut_format.lower())
-
+    client_name    = None
+    client_address = None
+    client_id      = None
+    client_cat     = None
 
     if match_address:
         result_address = match_address.group(0)
         client_address = re.sub(r'^address\s*', '', result_address).replace('\n', ' ')
-    else:
-        client_address = None
+ 
 
     if match_name:
-        client_name = match_name.group(1)
-    else:
-        client_name = None
+        client_name_brut = match_name.group(1)
+        client_name      = unidecode(client_name_brut)
 
 
-    data_client  = Client(client_name,client_address)
+    if qr_data:
+        client_id = qr_data.get('CUST', None)
+        client_cat = qr_data.get('CAT', None)
+
+
+    # Créez un objet Client avec les valeurs extraites
+    data_client = Client(client_name, client_address, client_id, client_cat)
 
     return data_client
 
 
 
-def get_invoices_client_data(brut_format):
-    regex_products    = r"(.+)\n(\d+)\sx\s(?:\D*)(\d+\.\d+)\sEuro"
-       
-    match_products    = re.findall(regex_products, brut_format.lower(),re.IGNORECASE)
+def get_invoice_products_data(brut_format):
+
+    """regex_total             = r'total\s*(.*?\b(?:euro|$))'
+    regex_invoice           = r"fac_\d{4}_\d{4}"
+    #regex_address           = r"address\s.*\n.*"
+    regex_date              = r"date.*?(\d+)-(\d+)-(\d+).(\d+).(\d+).(\d+)"
+
+    text_for_quantity = re.sub(regex_total, '', brut_format.lower())
+    text_for_quantity = re.sub(regex_invoice, '', text_for_quantity)
+    text_for_quantity = re.sub(regex_date, '', text_for_quantity)
+    #text_for_quantity = re.sub(regex_address, '', text_for_quantity)"""
+
+
+
+
+
+    regex_products_name             = r"([^\d\n]+\.)\n"
+    regex_products_quantity         = r"(?:\b(\d+)?\s*x?\s*)?(.*?\b(?:Euro|$))|TOTAL\s*(.*?\b(?:Euro|$))"
+    regex_products_price            = r"(\d+\.\d+)\s*Euro|TOTAL\s*(\d+\.\d+)\s*Euro"
+
+
+    match_products_name             = re.findall(regex_products_name, brut_format.lower(),re.IGNORECASE)
+    match_products_quantity         = re.findall(regex_products_quantity, brut_format.lower(),re.IGNORECASE)
+    match_products_price            = re.findall(regex_products_price, brut_format.lower(),re.IGNORECASE)
+
+    for prices in match_products_price:
+        if prices[1] !='':
+            match_products_price.remove(prices)
+
+    #print(match_products_price)
 
     products = {}
-    if match_products:
-        for i, product_info in enumerate(match_products,1):
-            product_list = Product(product_info[0].replace('.', ''), product_info[1], product_info[2].replace(' ',''))
+    if match_products_name and match_products_quantity and match_products_price:
+        for i, (product_info, quantity_match, price_match) in enumerate(zip(match_products_name, match_products_quantity, match_products_price), 1):
+            product_name = product_info if product_info != '' else None
+            quantity = quantity_match[0] if quantity_match and quantity_match[0] != '' else None
+            price = price_match[0] if price_match and price_match[0] != '' else None
+
+        
+        
+
+            product_list = Product(product_name.replace('.', ''), quantity, price.replace(' ', ''))
             products[f'product {i}'] = product_list
 
-    data_products  = Product(products)
+    data_products  = products
        
     return data_products
