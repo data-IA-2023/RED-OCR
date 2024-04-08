@@ -21,26 +21,23 @@ if session:
 def page_accueil():
     st.title('Accueil')
     all_invoice = get_all_invoices()
-    get_last_date_from_database_because_azure_server_suck = session.query(InvoiceTable.Invoice_date).order_by(InvoiceTable.Invoice_id.desc()).first()._asdict()
-    get_all_invoices_from_lastdate_in_database_because_azure_suck = get_all_invoices_from_dates(get_last_date_from_database_because_azure_server_suck.get('Invoice_date'))
-    # Nombre total de factures
+    invoices_in_db  = len(session.query(InvoiceTable).all())
+    # Nombre de factures depuis la dernière date (pour ajuster le problème Azure)
     total_invoices = len(all_invoice)
 
-    # Nombre de factures depuis la dernière date (pour ajuster le problème Azure)
-    invoices_from_last_date = len(get_all_invoices_from_lastdate_in_database_because_azure_suck)
-
     # Calcul du nombre ajusté de factures
-    adjusted_invoice_count = total_invoices - invoices_from_last_date
+    adjusted_invoice_count = total_invoices - invoices_in_db
     
+
     count_client  = len(session.query(ClientTable).all())
     count_product = len(session.query(ProductTable.Product_id).all())
     # Création d'un titre pour votre application
     st.title('OCR INVOICES')
     if st.button("mettre à jour la base de donnée"):
         get_data_from_all_invoice()
-    st.write(f"nombres total de nouvelles factures:", invoices_from_last_date)
+    st.write(f"nombres total de nouvelles factures:", adjusted_invoice_count)
     st.write(f"nombres total de factures:", total_invoices)
-    st.write(f"nombres total de factures en base de données:", adjusted_invoice_count)
+    st.write(f"nombres total de factures en base de données:", invoices_in_db)
     st.write(f"nombres de clients", count_client)
     st.write(f"nombres de produits", count_product)
 
@@ -162,25 +159,27 @@ def page_invoice():
 
 def page_client():
     st.title('Page client')
-    client   = session.query(ClientTable.Client_name).all()
+    client   = session.query(ClientTable.Client_id).all()
     client   = [i[0] for i in client]
 
     selected_client = st.selectbox("Sélectionnez un client:", client)
     if selected_client :
                 # Récupérer l'adresse du client en fonction de l'ID du client
-        client_address = session.query(ClientTable.Client_address).filter(ClientTable.Client_name == selected_client).first()[0]
+
+
+        client_address = session.query(ClientTable.Client_address).filter(ClientTable.Client_id == selected_client).first()[0]
 
 
                 # Récupérer l'ID du client en fonction de la relation entre invoice_id et Invoice_id
-        clientId = session.query(ClientTable.Client_id).filter(ClientTable.Client_name == selected_client).first()[0]
+        client_name = session.query(ClientTable.Client_name).filter(ClientTable.Client_id == selected_client).first()[0]
 
         # Récupérer l'ID de la facture en fonction de la relation entre selected_invoices et Invoice_ref
-        invoice_ref = session.query(InvoiceTable.Invoice_ref).filter(InvoiceTable.Client_id == clientId).all()
+        invoice_ref = session.query(InvoiceTable.Invoice_ref).filter(InvoiceTable.Client_id == selected_client).all()
                 
                 # Récupérer l'ID de la facture en fonction de la relation entre selected_invoices et Invoice_ref
-        invoice_id = session.query(InvoiceTable.Invoice_id).filter(InvoiceTable.Client_id == clientId).all()
+        invoice_id = session.query(InvoiceTable.Invoice_id).filter(InvoiceTable.Client_id == selected_client).all()
 
-        st.write(selected_client)
+        st.write(client_name)
         st.write(f"Adresse: {client_address}")
 
         st.write("Facture du client: ")
