@@ -3,16 +3,22 @@ import time
 import numpy as np
 import io
 import cv2
+import streamlit as st
+from PIL import Image
+from io import BytesIO
 
 
-
-
-def highlight_text(image_url):
+def draw_text_boxes(image_url):
     try:
-        # Récupérer l'image en ligne
-        response = requests.get(image_url)
+        image_link = f"https://invoiceocrp3.azurewebsites.net/invoices/{image_url}"
+        
+        # Récupérer l'image en ligne avec OpenCV
+        response = requests.get(image_link)
         response.raise_for_status()  # Vérifie si la requête a réussi
-        image = cv2.imdecode(np.frombuffer(response.content, np.uint8), cv2.IMREAD_COLOR)
+        
+        # Lire les données de l'image avec OpenCV
+        image_array = np.asarray(bytearray(response.content), dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
         
         # Convertir l'image en niveaux de gris
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -26,24 +32,16 @@ def highlight_text(image_url):
         # Trouver les contours des régions de texte
         contours, _ = cv2.findContours(binary, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
-        # Créer un masque pour les régions de texte
-        mask = np.zeros_like(gray)
+        # Dessiner un rectangle autour de chaque contour de texte
         for contour in contours:
             x, y, w, h = cv2.boundingRect(contour)
-            cv2.rectangle(mask, (x, y), (x + w, y + h), (255, 255, 255), -1)
+            cv2.rectangle(image, (x, y), (x + w, y + h), (0, 255, 0), 2)  # Dessiner un rectangle vert
         
-        # Mettre en évidence le texte dans l'image d'origine
-        highlighted_text = cv2.bitwise_and(image, image, mask=mask)
-        
-        # Afficher l'image résultante
-        cv2.imshow("Highlighted Text", highlighted_text)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-        return highlighted_text
+        # Afficher l'image avec les rectangles autour du texte
+        return image
     except Exception as e:
-        print(f"Une erreur s'est produite : {e}")
-
-
+        st.error(f"Une erreur s'est produite : {e}")
+        return None
 
         
 """

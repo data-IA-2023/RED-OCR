@@ -99,44 +99,41 @@ def get_invoices_client_data(qr_data, brut_format):
 
 def get_invoice_products_data(brut_format):
 
-    """regex_total             = r'total\s*(.*?\b(?:euro|$))'
     regex_invoice           = r"fac_\d{4}_\d{4}"
-    #regex_address           = r"address\s.*\n.*"
+    regex_address           = r"address\s.*\n.*"
     regex_date              = r"date.*?(\d+)-(\d+)-(\d+).(\d+).(\d+).(\d+)"
+    regex_total             = r'total\s*(.*?\b(?:euro|$))'
 
-    text_for_quantity = re.sub(regex_total, '', brut_format.lower())
-    text_for_quantity = re.sub(regex_invoice, '', text_for_quantity)
-    text_for_quantity = re.sub(regex_date, '', text_for_quantity)
+    regex_products_name             = r"([^\d\n]+\.)\n"
+    regex_products_quantity         = r"(?:\b(\d+)?\s*x?\s*)?(.*?\b(?:euro|$))"
+    regex_products_price            = r"(\d+\.\s*\d+)\s*euro"
+
+
+    text_without_total         = re.sub(regex_total, '', brut_format.lower())
+    #text_without_price          = re.sub(regex_products_price,'',text_without_total)
+    text_without_invoice       = re.sub(regex_invoice, '', text_without_total)
+    text_without_date          = re.sub(regex_date, '', text_without_invoice)
+    text_without_adress        = re.sub(regex_address,'',text_without_date)
+    #print(text_without_adress)
+
     #text_for_quantity = re.sub(regex_address, '', text_for_quantity)"""
 
 
-
-
-
-    regex_products_name             = r"([^\d\n]+\.)\n"
-    regex_products_quantity         = r"(?:\b(\d+)?\s*x?\s*)?(.*?\b(?:Euro|$))|TOTAL\s*(.*?\b(?:Euro|$))"
-    regex_products_price            = r"(\d+\.\d+)\s*Euro|TOTAL\s*(\d+\.\d+)\s*Euro"
-
-
-    match_products_name             = re.findall(regex_products_name, brut_format.lower(),re.IGNORECASE)
-    match_products_quantity         = re.findall(regex_products_quantity, brut_format.lower(),re.IGNORECASE)
-    match_products_price            = re.findall(regex_products_price, brut_format.lower(),re.IGNORECASE)
-
-    for prices in match_products_price:
-        if prices[1] !='':
-            match_products_price.remove(prices)
-
-    #print(match_products_price)
-
+    match_products_name             = re.findall(regex_products_name, text_without_total,re.IGNORECASE)
+    match_products_quantity         = re.findall(regex_products_quantity, text_without_adress,re.IGNORECASE)
+    match_products_price            = re.findall(regex_products_price, text_without_total,re.IGNORECASE)
+   
+    print(match_products_quantity)
     products = {}
     if match_products_name and match_products_quantity and match_products_price:
         for i, (product_info, quantity_match, price_match) in enumerate(zip(match_products_name, match_products_quantity, match_products_price), 1):
             product_name = product_info if product_info != '' else None
+            #print(product_name)
             quantity = quantity_match[0] if quantity_match and quantity_match[0] != '' else None
-            price = price_match[0] if price_match and price_match[0] != '' else None
-
-        
-        
+            #print(quantity)
+            price = price_match if price_match != '' else None
+            #print(price)
+    
 
             product_list = Product(product_name.replace('.', ''), quantity, price.replace(' ', ''))
             products[f'product {i}'] = product_list
